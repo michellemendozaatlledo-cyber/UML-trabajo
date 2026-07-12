@@ -1,13 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package Logica_de_salida;
 
-/**
- *
- * @author USER
- */
+import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
+
 public class UML_Clase {
     
+    String nombre;
+    List<String> atributos = new ArrayList<>();
+    List<String> metodos = new ArrayList<>();
+    Rectangle bounds;
+    
+    public UML_Clase(String nombre,int x,int y){
+        this.nombre = nombre;
+        this.bounds = new Rectangle(x,y,160,100); 
+    }
+            
 }
