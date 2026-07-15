@@ -9,10 +9,10 @@ import java.util.List;
 
 public class UML_Clase {
     
-    String nombre;
-    List<String> atributos = new ArrayList<>();
-    List<String> metodos = new ArrayList<>();
-    Rectangle bounds;
+    public String nombre;
+    public List<String> atributos = new ArrayList<>();
+    public List<String> metodos = new ArrayList<>();
+    public Rectangle bounds;
     
     public UML_Clase(String nombre,int x,int y){
         this.nombre = nombre;

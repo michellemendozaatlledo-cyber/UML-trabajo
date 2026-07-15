@@ -113,7 +113,7 @@ public class Herramientas_UML {
                     susHijos.add(rel.origen.nombre); 
                 }
             }
-            
+           
             //List<String> susHijos: Crea una lista temporal para guardar los nombres de las clases
             //que heredan de la clase actual.
             //El bucle interno: Vuelve a revisar las relaciones.
