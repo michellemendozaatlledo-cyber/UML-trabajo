@@ -8,10 +8,10 @@ import java.util.List;
 import javax.swing.*;
 
 class UMLCanvas extends JPanel {
-    List<UML_Clase> clasesUML = new ArrayList<>();
-    List<UML_relacion> relaciones = new ArrayList<>();
+    List<UML_Clase> clasesUML = new ArrayList<>(); //guarda las cajas
+    List<UML_relacion> relaciones = new ArrayList<>(); //guarda las flechas
     
-    private UML_Clase claseSeleccionadaArrastre = null;
+    private UML_Clase claseSeleccionadaArrastre = null; //apuntador
     private UML_Clase claseSeleccionadaMenu = null; // Para saber a quién le hicimos clic derecho
     private Point offsetRaton; 
     
@@ -25,41 +25,42 @@ class UMLCanvas extends JPanel {
         MouseAdapter ratonAdapter = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                UML_Clase claseClickeada = obtenerClaseEnPosicion(e.getPoint());
+                UML_Clase claseClickeada = obtenerClaseEnPosicion(e.getPoint()); //ubi del click en una caja
 
                 // Si es CLIC DERECHO
                 if (SwingUtilities.isRightMouseButton(e)) {
                     if (claseClickeada != null) {
-                        claseSeleccionadaMenu = claseClickeada;
+                        claseSeleccionadaMenu = claseClickeada; //guarda la clase y la manda al menu
                         menuContextual.show(e.getComponent(), e.getX(), e.getY());
                     }
                 } 
                 // Si es CLIC IZQUIERDO (Para arrastrar)
                 else if (SwingUtilities.isLeftMouseButton(e)) {
                     if (claseClickeada != null) {
-                        claseSeleccionadaArrastre = claseClickeada;
+                        claseSeleccionadaArrastre = claseClickeada; //guarda la caja 
                         offsetRaton = new Point(e.getX() - claseClickeada.bounds.x, e.getY() - claseClickeada.bounds.y);
+                       //lo arrastra
                     }
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                claseSeleccionadaArrastre = null; 
+                claseSeleccionadaArrastre = null; //suelta el mouse y suelta la caja
             }
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (claseSeleccionadaArrastre != null && SwingUtilities.isLeftMouseButton(e)) {
-                    claseSeleccionadaArrastre.bounds.x = e.getX() - offsetRaton.x;
+                if (claseSeleccionadaArrastre != null && SwingUtilities.isLeftMouseButton(e)) { //verifica q sea click izq
+                    claseSeleccionadaArrastre.bounds.x = e.getX() - offsetRaton.x; //obtiene las cordenadas
                     claseSeleccionadaArrastre.bounds.y = e.getY() - offsetRaton.y;
-                    repaint(); 
+                    repaint(); //vuelve a hacer el lienzo
                 }
             }
         };
 
-        addMouseListener(ratonAdapter);
-        addMouseMotionListener(ratonAdapter);
+        addMouseListener(ratonAdapter); //escucha clicks
+        addMouseMotionListener(ratonAdapter); //escucha movimiento
     }
 
     private void crearMenuContextual() {
@@ -68,23 +69,23 @@ class UMLCanvas extends JPanel {
         JMenuItem itemEditar = new JMenuItem("Editar Nombre");
         JMenuItem itemEliminar = new JMenuItem("Eliminar Clase");
 
-        itemEditar.addActionListener(e -> {
-            if (claseSeleccionadaMenu != null) {
+        itemEditar.addActionListener(e -> { //indica al usuario hacer lo de adentro
+            if (claseSeleccionadaMenu != null) { //jmenu para cambio de nombre
                 String nuevoNombre = JOptionPane.showInputDialog(this, "Nuevo nombre:", claseSeleccionadaMenu.nombre);
-                if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) {
-                    claseSeleccionadaMenu.nombre = nuevoNombre.trim();
+                if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) { //quita espacios en blanco y q no este vacia
+                    claseSeleccionadaMenu.nombre = nuevoNombre.trim(); //cambia el nombre de la clase
                     repaint();
                 }
             }
         });
 
-        itemEliminar.addActionListener(e -> {
+        itemEliminar.addActionListener(e -> { //
             if (claseSeleccionadaMenu != null) {
                 int resp = JOptionPane.showConfirmDialog(this, "¿Seguro que deseas eliminar '" + claseSeleccionadaMenu.nombre + "'?", "Confirmar", JOptionPane.YES_NO_OPTION);
-                if (resp == JOptionPane.YES_OPTION) {
+                if (resp == JOptionPane.YES_OPTION) { //si se confirma eliminar REMUEVE la clase
                     clasesUML.remove(claseSeleccionadaMenu);
                     // Borrar relaciones conectadas a esta clase
-                    relaciones.removeIf(rel -> rel.origen == claseSeleccionadaMenu || rel.destino == claseSeleccionadaMenu);
+                    relaciones.removeIf(rel -> rel.origen == claseSeleccionadaMenu || rel.destino == claseSeleccionadaMenu); //si tiene relaciones de origen las borra
                     repaint();
                 }
             }
@@ -97,9 +98,9 @@ class UMLCanvas extends JPanel {
 
     private UML_Clase obtenerClaseEnPosicion(Point p) {
         // Recorremos de atrás para adelante por si hay cajas encimadas
-        for (int i = clasesUML.size() - 1; i >= 0; i--) {
-            if (clasesUML.get(i).bounds.contains(p)) {
-                return clasesUML.get(i);
+        for (int i = clasesUML.size() - 1; i >= 0; i--) { //la ultima clase agregada se coloca EN FRENTE 
+            if (clasesUML.get(i).bounds.contains(p)) { //verifica que el click sea en la caja (sus cordenadas) 
+                return clasesUML.get(i); //obtiene la caja clickeada
             }
         }
         return null;
