@@ -75,8 +75,7 @@ public class Diseñador_UML extends JFrame{
             canvas.repaint();
         });
 
-        // ¡ATENCIÓN A ESTAS LÍNEAS! 
-        // La Persona 3 llama a los métodos que hizo la Persona 1 en 'HerramientasUML'
+     
         btnFoto.addActionListener(e -> Herramientas_UML.guardarImagen(canvas, this));
         btnCodigo.addActionListener(e -> Herramientas_UML.generarCodigoJava(canvas.clasesUML, canvas.relaciones, this));
     }

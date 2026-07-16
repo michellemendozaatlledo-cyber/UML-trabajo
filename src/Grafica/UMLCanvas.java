@@ -7,16 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 
-class UMLCanvas extends JPanel {
-    List<UML_Clase> clasesUML = new ArrayList<>();
-    List<UML_relacion> relaciones = new ArrayList<>();
+public class UMLCanvas extends JPanel {
+   public List<UML_Clase> clasesUML = new ArrayList<>();
+    public List<UML_relacion> relaciones = new ArrayList<>();
     
-    private UML_Clase claseSeleccionadaArrastre = null;
-    private UML_Clase claseSeleccionadaMenu = null; // Para saber a quién le hicimos clic derecho
-    private Point offsetRaton; 
+    public UML_Clase claseSeleccionadaArrastre = null;
+    public UML_Clase claseSeleccionadaMenu = null; // Para saber a quién le hicimos clic derecho
+    public Point offsetRaton; 
     
     // El menú de clic derecho
-    private JPopupMenu menuContextual;
+    public JPopupMenu menuContextual;
 
     public UMLCanvas() {
         setBackground(Color.WHITE);
@@ -62,7 +62,7 @@ class UMLCanvas extends JPanel {
         addMouseMotionListener(ratonAdapter);
     }
 
-    private void crearMenuContextual() {
+    public void crearMenuContextual() {
         menuContextual = new JPopupMenu();
         
         JMenuItem itemEditar = new JMenuItem("Editar Nombre");
@@ -95,7 +95,7 @@ class UMLCanvas extends JPanel {
         menuContextual.add(itemEliminar);
     }
 
-    private UML_Clase obtenerClaseEnPosicion(Point p) {
+    public UML_Clase obtenerClaseEnPosicion(Point p) {
         // Recorremos de atrás para adelante por si hay cajas encimadas
         for (int i = clasesUML.size() - 1; i >= 0; i--) {
             if (clasesUML.get(i).bounds.contains(p)) {
@@ -168,7 +168,7 @@ class UMLCanvas extends JPanel {
     }
 
     // Calcula dónde corta la línea con el borde de la caja (Para que la flecha no se esconda)
-    private Point obtenerInterseccionBorde(int x1, int y1, int x2, int y2, Rectangle rect) {
+    public Point obtenerInterseccionBorde(int x1, int y1, int x2, int y2, Rectangle rect) {
         double dx = x1 - x2;
         double dy = y1 - y2;
         double w = rect.width / 2.0;
@@ -185,7 +185,7 @@ class UMLCanvas extends JPanel {
         return new Point((int) (x2 + crossX), (int) (y2 + crossY));
     }
 
-    private void dibujarTriangulo(Graphics2D g2d, int x, int y, double angulo) {
+    public void dibujarTriangulo(Graphics2D g2d, int x, int y, double angulo) {
         int tam = 16; 
         int x2 = (int) (x - tam * Math.cos(angulo - Math.PI / 6));
         int y2 = (int) (y - tam * Math.sin(angulo - Math.PI / 6));
