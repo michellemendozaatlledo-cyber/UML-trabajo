@@ -19,6 +19,6 @@ public class UML_Clase {
         this.bounds = new Rectangle(x,y,160,100); 
         //crea un nuevo objeto rectangular y le asigan una nueva propiedad, define la base y la altura,
         //acompañado de los pixeles para cada uno de ellos
-    }
+    } 
             
 }

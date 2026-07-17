@@ -3,28 +3,24 @@ package Logica_de_salida;
 import javax.swing.*;
 
 import javax.swing.filechooser.FileNameExtensionFilter;
-//permite establecer restricciones de formato en el componente JFileChooser de Java Swing. Filtra los archivos 
-//que el usuario puede ver o seleccionar, limitándolos a extensiones específicas (como .txt, .jpg, .png).
+//Filtra los archivos que el usuario puede ver o seleccionar, limitándolos a extensiones específicas
+//como(.txt, .jpg, .png).
 
 import java.awt.*;
 
 import java.awt.image.BufferedImage;
-//permite almacenar y manipular imágenes directamente en la memoria RAM. Facilita la lectura, modificación de
-//píxeles, redimensionamiento y aplicación de filtros antes de guardarlas en el disco. Esencialmente, actúa 
-//como un lienzo de datos de imagen accesible y editable mediante programación.
+//permite almacenar y manipular imágenes directamente en la memoria RAM.
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Herramientas_UML {
-
     // Método para guardar la imagen
     public static void guardarImagen(JPanel canvas, Component ventana) {
         JFileChooser fileChooser = new JFileChooser();
-        //*El JFileChooser en Java es un componente de la biblioteca Java Swing que permite mostrar un cuadro de diálogo
-        //nativo. Facilita la navegación por el sistema de archivos de la computadora para que el usuario pueda 
-        //seleccionar, abrir o guardar archivos y carpetas de forma visual.
+        //El JFileChooser en Java es un componente de la biblioteca Java Swing que permite mostrar un cuadro 
+        //de diálogo nativo.
         
         fileChooser.setDialogTitle("Guardar diagrama como imagen...");
         fileChooser.setFileFilter(new FileNameExtensionFilter("Imágenes PNG", "png"));
