@@ -107,60 +107,60 @@ public class UMLCanvas extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g; 
-        g2d.setStroke(new BasicStroke(2)); 
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        super.paintComponent(g); //borra lo q se dibujo en el lienzo anterior
+        Graphics2D g2d = (Graphics2D) g;  //permite tener herramientas de edicion
+        g2d.setStroke(new BasicStroke(2)); //es el grosor de las lineas (2 pixeles)
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); //renderizado de graficos,suavizado
 
         // 1. Dibujar Relaciones (Cuerdas y Flechas)
-        for (UML_relacion rel : relaciones) {
-            int cx1 = rel.origen.bounds.x + (rel.origen.bounds.width / 2);
+        for (UML_relacion rel : relaciones) { //bucle de lista: recorre la lista de "relaciones", toma una por una la llama "rel" y le aplica el codigo
+            int cx1 = (rel.origen.bounds.x) + (rel.origen.bounds.width / 2); //(geometria de una caja: cordenada x,y,ancho,alto) + (busca el centro de la caja (mitad))
             int cy1 = rel.origen.bounds.y + (rel.origen.bounds.height / 2);
             int cx2 = rel.destino.bounds.x + (rel.destino.bounds.width / 2);
             int cy2 = rel.destino.bounds.y + (rel.destino.bounds.height / 2);
 
-            if (rel.tipo == UML_relacion.Tipo.HERENCIA) {
-                g2d.setColor(Color.BLUE);
+            if (rel.tipo == UML_relacion.Tipo.HERENCIA) { //pregunta si la linea presenta una herencia y....
+                g2d.setColor(Color.BLUE); //....si es asi, la coloca en color azul
                 
                 // Calcular el punto exacto donde la línea toca el borde de la caja destino
-                Point bordeDestino = obtenerInterseccionBorde(cx1, cy1, cx2, cy2, rel.destino.bounds);
-                double angulo = Math.atan2(bordeDestino.y - cy1, bordeDestino.x - cx1);
+                Point bordeDestino = obtenerInterseccionBorde(cx1, cy1, cx2, cy2, rel.destino.bounds); //se hace el calculo para q se vea el triangulo
+                double angulo = Math.atan2(bordeDestino.y - cy1, bordeDestino.x - cx1); //a donde apunta la flecha
                 
-                g2d.drawLine(cx1, cy1, bordeDestino.x, bordeDestino.y);
-                dibujarTriangulo(g2d, bordeDestino.x, bordeDestino.y, angulo); 
-            } else {
-                g2d.setColor(Color.GRAY);
-                g2d.drawLine(cx1, cy1, cx2, cy2);
+                g2d.drawLine(cx1, cy1, bordeDestino.x, bordeDestino.y); //traza la linea azul desde la caja 1 y termina en el borde de la caja 2
+                dibujarTriangulo(g2d, bordeDestino.x, bordeDestino.y, angulo); //se dibuja el triangulo de la flecha
+            } else { //si no es herencia (solo asociacion normal)
+                g2d.setColor(Color.GRAY); //sera una simple linea gris
+                g2d.drawLine(cx1, cy1, cx2, cy2); //dibuja una linea recta entre las 2 cajas
             }
         }
 
         // 2. Dibujar Clases (Cajas)
         for (UML_Clase uml : clasesUML) {
-            int altoTitulo = 30;
-            int altoAtributos = Math.max(30, uml.atributos.size() * 15 + 10);
-            int altoMetodos = Math.max(30, uml.metodos.size() * 15 + 10);
-            uml.bounds.height = altoTitulo + altoAtributos + altoMetodos;
+            int altoTitulo = 30; //1
+            int altoAtributos = Math.max(30, uml.atributos.size() * 15 + 10); //1
+            int altoMetodos = Math.max(30, uml.metodos.size() * 15 + 10); //1
+            uml.bounds.height = altoTitulo + altoAtributos + altoMetodos; //1: tamaño de la caja,adecua el tamaño segun los elementos q tenga
 
-            g2d.setColor(new Color(255, 255, 220)); 
-            g2d.fill(uml.bounds);
-            g2d.setColor(Color.BLACK);
-            g2d.draw(uml.bounds); 
+            g2d.setColor(new Color(255, 255, 220)); //color de la caja (amarillo claro)
+            g2d.fill(uml.bounds); //rellena la caja con el color
+            g2d.setColor(Color.BLACK); //color negro para...
+            g2d.draw(uml.bounds); //...el contorno de la caja
 
-            g2d.setFont(new Font("Arial", Font.BOLD, 12));
-            g2d.drawString(uml.nombre, uml.bounds.x + 10, uml.bounds.y + 20);
-            g2d.drawLine(uml.bounds.x, uml.bounds.y + altoTitulo, uml.bounds.x + uml.bounds.width, uml.bounds.y + altoTitulo);
+            g2d.setFont(new Font("Arial", Font.BOLD, 12)); //2 titulo: letra arial, en negrita 12
+            g2d.drawString(uml.nombre, uml.bounds.x + 10, uml.bounds.y + 20); //2
+            g2d.drawLine(uml.bounds.x, uml.bounds.y + altoTitulo, uml.bounds.x + uml.bounds.width, uml.bounds.y + altoTitulo); //2
 
-            g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-            int yActual = uml.bounds.y + altoTitulo + 15;
-            for (String attr : uml.atributos) {
+            g2d.setFont(new Font("Arial", Font.PLAIN, 12)); //3 atributos: cambia el estilo de letra sin negrita
+            int yActual = uml.bounds.y + altoTitulo + 15; //3 
+            for (String attr : uml.atributos) { //recorre la lista de atributos y baja un reglon
                 g2d.drawString(attr, uml.bounds.x + 10, yActual);
                 yActual += 15;
             }
-            int lineaSeparadoraY = uml.bounds.y + altoTitulo + altoAtributos;
-            g2d.drawLine(uml.bounds.x, lineaSeparadoraY, uml.bounds.x + uml.bounds.width, lineaSeparadoraY);
+            int lineaSeparadoraY = uml.bounds.y + altoTitulo + altoAtributos; //coloca una linea para separar y...
+            g2d.drawLine(uml.bounds.x, lineaSeparadoraY, uml.bounds.x + uml.bounds.width, lineaSeparadoraY); //...la dibuja
 
             yActual = lineaSeparadoraY + 15;
-            for (String met : uml.metodos) {
+            for (String met : uml.metodos) { //hace lo mismo con los atributos
                 g2d.drawString(met, uml.bounds.x + 10, yActual);
                 yActual += 15;
             }
