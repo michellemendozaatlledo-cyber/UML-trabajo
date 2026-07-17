@@ -1,10 +1,12 @@
 
 package interfaz;
+//importo los paquetes de mis compañero
 import Grafica.UMLCanvas;
 import Logica_de_salida.*;
 import javax.swing.*;
 import java.awt.*;
 public class Diseñador_UML extends JFrame{
+    //el codigo de la persona Antone
     public UMLCanvas canvas;
 
     public Diseñador_UML() {
@@ -12,12 +14,12 @@ public class Diseñador_UML extends JFrame{
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-
+//llamo la pizarra que creo Antone y lo pongo en el centro
         canvas = new UMLCanvas();
         add(canvas, BorderLayout.CENTER); 
-
+        //contenedor de los botones
         JPanel panelBotones = new JPanel();
-        
+        // creo los botones
         JButton btnCrear = new JButton("Nueva Clase");
         JButton btnAtributo = new JButton("+ Atributo");
         JButton btnMetodo = new JButton("+ Método");
@@ -36,11 +38,20 @@ public class Diseñador_UML extends JFrame{
         
         add(panelBotones, BorderLayout.NORTH); 
 
-        btnCrear.addActionListener(e -> {
-            String nombre = JOptionPane.showInputDialog("¿Cómo se llamará la clase?");
-            if (nombre != null && !nombre.trim().isEmpty()) {
-                canvas.clasesUML.add(new UML_Clase(nombre, 50, 50));
-                canvas.repaint(); 
+        btnCrear.addActionListener(e -> { //la flechita es para cuando hagan clic ejecute el siguiente bloque de codigo 
+            String nombre = JOptionPane.showInputDialog("¿Cómo se llamará la clase?"); 
+            //abre una ventana preguntando el nombre de la clase y la guarda en la variable "nombre"
+            if (nombre != null && !nombre.trim().isEmpty()) { // es para evitar que el usuario meta datos vacios 
+                //trim() corta espacios vacios y Empty pregunta si esta vacio
+            // 1. Contamos cuántas tarjetas hay en la mesa actualmente
+            int cantidad = canvas.clasesUML.size(); 
+            // 2. Calculamos las nuevas coordenadas (sumamos 30 píxeles por cada tarjeta que ya exista)
+               int nuevaX = 50 + (cantidad * 30);
+            int nuevaY = 50 + (cantidad * 30);
+            // 3. Le pasamos esas nuevas coordenadas a la fábrica
+            canvas.clasesUML.add(new UML_Clase(nombre, nuevaX, nuevaY));
+       
+            canvas.repaint();
             }
         });
 
