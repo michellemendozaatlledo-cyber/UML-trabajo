@@ -1,8 +1,8 @@
-package Grafica;
+package Grafica; // Indica que este archivo pertenece a la carpeta visual o gráfica de tu proyecto.
+
 // Traemos los moldes de nuestros datos y las herramientas de Java necesarias para dibujar y detectar el ratón
 import Logica_de_salida.UML_Clase; // Trae el molde para crear las cajas de las clases
 import Logica_de_salida.UML_relacion; // Trae el molde para crear las flechas/líneas
-import Logica_de_salida.Herramientas_UML;
 import javax.swing.*; // Herramientas visuales de ventanas y menús.
 import java.awt.*; // Herramientas de dibujo (pinceles, colores, coordenadas).
 import java.awt.event.*; // Herramientas para detectar clics y movimientos del ratón.
@@ -26,6 +26,13 @@ public class UMLCanvas extends JPanel {
     private JPopupMenu menuContextual; // El menú para las cajas (Editar/Eliminar)
     private JPopupMenu menuContextualRelacion; // El menú para las líneas (Eliminar)
 
+    // Variables exclusivas para la función de dibujar y arrastrar la línea con el ratón
+    public boolean modoRelacion = false; // Indica si estamos en "modo dibujo"
+    public UML_relacion.Tipo tipoRelacionPendiente = null; // Guarda si dibujaremos línea normal o herencia
+    private UML_Clase claseInicioRelacion = null; // Memoriza la caja de donde sale la flecha
+    private Point puntoFinRelacionTemp = null; // Marca a dónde apunta el ratón mientras arrastramos
+
+    // CONSTRUCTOR: Se ejecuta cuando se crea la pizarra por primera vez.
     public UMLCanvas() {
         setBackground(Color.WHITE); // Pintamos el fondo de la pizarra de color blanco
         crearMenuContextual(); // Llamamos a la función que prepara los menús de clic derecho.
@@ -38,6 +45,15 @@ public class UMLCanvas extends JPanel {
             public void mousePressed(MouseEvent e) {
                 // Buscamos si justo donde hizo clic hay alguna caja.
                 UML_Clase claseClickeada = obtenerClaseEnPosicion(e.getPoint());
+
+                // Si el botón de "Crear Relación" activó el modo dibujo, el ratón actúa como lápiz
+                if (modoRelacion && SwingUtilities.isLeftMouseButton(e)) {
+                    if (claseClickeada != null) {
+                        claseInicioRelacion = claseClickeada; // Memoriza desde qué caja empezamos a dibujar
+                        puntoFinRelacionTemp = e.getPoint(); // Marca el punto inicial del dibujo
+                    }
+                    return; // Bloquea el resto de acciones (para no arrastrar la caja por error)
+                }
 
                 // Si fue un CLIC DERECHO...
                 if (SwingUtilities.isRightMouseButton(e)) {
@@ -66,13 +82,61 @@ public class UMLCanvas extends JPanel {
             // ¿Qué pasa cuando el usuario SUELTA el botón del ratón?
             @Override
             public void mouseReleased(MouseEvent e) {
-                claseSeleccionadaArrastre = null; // Olvidamos la caja, ya no la estamos arrastrando.
+                // Si estábamos arrastrando una flecha y soltamos el botón
+                if (modoRelacion && claseInicioRelacion != null) {
+                    UML_Clase claseDestino = obtenerClaseEnPosicion(e.getPoint()); // Revisa dónde soltamos el ratón
+                    
+                    // Si soltaste el ratón sobre otra clase válida (y no sobre la misma caja)
+                    if (claseDestino != null && claseDestino != claseInicioRelacion) {
+                        
+                        // Guardia de seguridad: Verificamos si ya existe esta relación
+                        boolean relacionYaExiste = false;
+                        for (UML_relacion rel : relaciones) {
+                            if ((rel.origen == claseInicioRelacion && rel.destino == claseDestino) || 
+                                (rel.origen == claseDestino && rel.destino == claseInicioRelacion)) {
+                                relacionYaExiste = true;
+                                break;
+                            }
+                        }
+
+                        if (relacionYaExiste) {
+                            // Si ya existe, lanza un aviso.
+                            JOptionPane.showMessageDialog(UMLCanvas.this, "Ya existe una línea o flecha conectando estas dos clases.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                        } else {
+                            // Si no existe, creamos la flecha oficialmente y la guardamos
+                            relaciones.add(new UML_relacion(claseInicioRelacion, claseDestino, tipoRelacionPendiente));
+                            
+                            // Si acabamos de crear una herencia, avisamos al usuario del cambio de color
+                            if (tipoRelacionPendiente == UML_relacion.Tipo.HERENCIA) {
+                                JOptionPane.showMessageDialog(UMLCanvas.this, 
+                                    "¡La clase '" + claseDestino.nombre + "' ahora es una MADRE!\nSu caja cambiará a un color único para diferenciarla de las demás.", 
+                                    "Herencia Creada", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        }
+                    }
+                    
+                    // Apagamos el modo dibujo de líneas y limpiamos la memoria temporal
+                    modoRelacion = false;
+                    claseInicioRelacion = null;
+                    puntoFinRelacionTemp = null;
+                    repaint(); // Actualiza la pantalla
+                    return;
+                }
+
+                claseSeleccionadaArrastre = null; // Olvidamos la caja, ya no la estamos arrastrando
             }
 
             // ¿Qué pasa cuando el usuario MUEVE el ratón MIENTRAS lo tiene presionado?
             @Override
             public void mouseDragged(MouseEvent e) {
-                // Si tenemos una caja memorizada y estamos usando el clic izquierdoop
+                // Si estamos en modo dibujo, hacemos que la punta de la flecha siga al ratón
+                if (modoRelacion && claseInicioRelacion != null) {
+                    puntoFinRelacionTemp = e.getPoint();
+                    repaint(); // Ordenamos redibujar para ver la línea moviéndose en vivo
+                    return;
+                }
+
+                // Si tenemos una caja memorizada y estamos usando el clic izquierdo
                 if (claseSeleccionadaArrastre != null && SwingUtilities.isLeftMouseButton(e)) {
                     // Actualizamos las coordenadas (X, Y) de la caja para que siga al ratón.
                     claseSeleccionadaArrastre.bounds.x = e.getX() - offsetRaton.x;
@@ -175,7 +239,40 @@ public class UMLCanvas extends JPanel {
         g2d.setStroke(new BasicStroke(2)); // Hacemos que las líneas se dibujen con un grosor de 2 píxeles.
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // Filtro para que las líneas no se vean pixeladas (suavizado).
 
-        // 1. DIBUJAMOS TODAS LAS LÍNEAS (Van primero para que las cajas las tapen si pasan por detrás)
+        // Dibuja la línea temporal elástica mientras la arrastramos con el ratón
+        if (modoRelacion && claseInicioRelacion != null && puntoFinRelacionTemp != null) {
+            int cx1 = claseInicioRelacion.bounds.x + (claseInicioRelacion.bounds.width / 2);
+            int cy1 = claseInicioRelacion.bounds.y + (claseInicioRelacion.bounds.height / 2);
+            
+            // Si elegimos herencia será azul, si es normal será gris
+            if (tipoRelacionPendiente == UML_relacion.Tipo.HERENCIA) {
+                g2d.setColor(Color.BLUE);
+            } else {
+                g2d.setColor(Color.GRAY);
+            }
+            // Traza la línea desde el centro de la caja origen hasta donde esté el ratón temporalmente
+            g2d.drawLine(cx1, cy1, puntoFinRelacionTemp.x, puntoFinRelacionTemp.y);
+        }
+
+        // Creamos una lista de las madres únicas que existen en la pizarra para asignarles colores
+        List<UML_Clase> listaMadres = new ArrayList<>();
+        for (UML_relacion rel : relaciones) {
+            // Si hay una herencia y esta madre aún no está en la lista, la agregamos
+            if (rel.tipo == UML_relacion.Tipo.HERENCIA && !listaMadres.contains(rel.destino)) {
+                listaMadres.add(rel.destino);
+            }
+        }
+
+        // Paleta de colores para diferenciar las familias/madres (Celeste, Rosa, Verde, Lila, Naranja)
+        Color[] paletaMadres = {
+            new Color(220, 240, 255), 
+            new Color(255, 220, 220), 
+            new Color(220, 255, 220), 
+            new Color(240, 220, 255), 
+            new Color(255, 235, 205)  
+        };
+
+        // 1. DIBUJAMOS TODAS LAS LÍNEAS OFICIALES (Van primero para que las cajas las tapen si pasan por detrás)
         for (UML_relacion rel : relaciones) {
             // Calculamos el centro de las dos cajas que se van a conectar.
             int cx1 = rel.origen.bounds.x + (rel.origen.bounds.width / 2);
@@ -209,8 +306,17 @@ public class UMLCanvas extends JPanel {
             int altoMetodos = Math.max(30, uml.metodos.size() * 15 + 10);
             uml.bounds.height = altoTitulo + altoAtributos + altoMetodos; // La caja se estira automáticamente.
 
-            // Dibujamos el rectángulo amarillo pálido de la caja.
-            g2d.setColor(new Color(255, 255, 220)); 
+            Color colorFondo = new Color(255, 255, 220); // Amarillo pastel por defecto
+            
+            // Verificamos si esta clase está en nuestra lista de madres
+            int indexMadre = listaMadres.indexOf(uml);
+            if (indexMadre != -1) {
+                // Si es madre, le asignamos un color único de nuestra paleta basado en su posición
+                colorFondo = paletaMadres[indexMadre % paletaMadres.length];
+            }
+
+            // Dibujamos el rectángulo con el color correspondiente (amarillo o el color de madre)
+            g2d.setColor(colorFondo); 
             g2d.fill(uml.bounds);
             // Le pintamos el borde de negro.
             g2d.setColor(Color.BLACK);
@@ -242,7 +348,7 @@ public class UMLCanvas extends JPanel {
         }
     }
 
-    //Calcula el punto exacto donde la línea choca con el marco exterior de la caja.
+    // Calcula el punto exacto donde la línea choca con el marco exterior de la caja para que la flecha no quede por debajo.
     private Point obtenerInterseccionBorde(int x1, int y1, int x2, int y2, Rectangle rect) {
         double dx = x1 - x2; // Diferencia horizontal.
         double dy = y1 - y2; // Diferencia vertical.
@@ -261,7 +367,7 @@ public class UMLCanvas extends JPanel {
         return new Point((int) (x2 + crossX), (int) (y2 + crossY)); // Devuelve el punto de choque exacto.
     }
 
-    //Dibuja un triángulo blanco con borde azul (flecha de herencia)
+    // Dibuja un triángulo blanco con borde azul (flecha de herencia)
     private void dibujarTriangulo(Graphics2D g2d, int x, int y, double angulo) {
         int tam = 16; // Tamaño de las patitas del triángulo.
         

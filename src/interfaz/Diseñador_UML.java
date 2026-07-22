@@ -1,31 +1,30 @@
 package interfaz; // Indica que este archivo vive dentro de la carpeta "interfaz"
-//  buscamos los codigos de antone y coldova
-import Grafica.UMLCanvas; // Trae la pizarra interactiva donde vamos a dibujar(codigo de antone)
-import Logica_de_salida.UML_Clase; // Trae el molde o plantilla para crear las cajitas (clases).
-import Logica_de_salida.UML_relacion; // Trae la plantilla para trazar las líneas que conectan las cajas.
-import Logica_de_salida.Herramientas_UML; // Trae funciones extra, como la cámara de fotos o el generador de código.
+// Las siguientes líneas importan las herramientas necesarias de las carpetas de mis compañeros
+// buscamos los codigos de antone y coldova
+import Grafica.UMLCanvas; // Trae la pizarra donde se dibuja(Antone)
+import Logica_de_salida.*;
 
-import javax.swing.*; // Trae las herramientas visuales de Java (botones, ventanas, menús de diálogo).
-import java.awt.*; // Trae las reglas de diseño (colores, tamaños, posiciones).
+import javax.swing.*; // Trae las herramientas visuales (botones, ventanas, menús)
+import java.awt.*; // Trae herramientas de diseño (tamaños, posiciones, colores)
 
 public class Diseñador_UML extends JFrame {
     
-    // Declaramos nuestra pizarra principal para que todo el programa la conozca
+    // Se declara la variable para la pizarra (el lienzo donde se dibuja todo)
     public UMLCanvas canvas;
 
-
+    // Este es el CONSTRUCTOR. Es lo primero que se ejecuta cuando nace la ventana
     public Diseñador_UML() {
-        setTitle("Diseñador UML (Clic derecho para Editar/Eliminar)"); 
+        setTitle("Diseñador UML (Clic derecho para Editar/Eliminar)");
         setSize(1000, 700); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
         setLayout(new BorderLayout()); 
-        
-        canvas = new UMLCanvas(); //fabrica la pizarra real
-        add(canvas, BorderLayout.CENTER); // Pegamos la pizarra en el CENTRO exacto de nuestra ventana.
 
-        JPanel panelBotones = new JPanel(); // Creamos una bandeja o estante para organizar nuestros controles.
+        canvas = new UMLCanvas(); // Fabrica la pizarra real
+        add(canvas, BorderLayout.CENTER); // Pega la pizarra justo en el CENTRO de la ventana
+
+        JPanel panelBotones = new JPanel(); // Crea un panel (como una bandeja de plástico) para guardar los botones
         
-        // Fabricamos las etiquetas de cada botón que el usuario va a poder tocar.
+        // Se fabrican todos los botones y se les pone un texto
         JButton btnCrear = new JButton("Nueva Clase");
         JButton btnAtributo = new JButton("+ Atributo");
         JButton btnMetodo = new JButton("+ Método");
@@ -33,56 +32,58 @@ public class Diseñador_UML extends JFrame {
         JButton btnFoto = new JButton("Tomar Foto (Guardar)");
         JButton btnCodigo = new JButton("Generar Código");
 
-        // Colocamos ordenadamente cada botón dentro de nuestra bandeja (panelBotones).
+        // Se meten los botones dentro de la bandeja (panelBotones) uno por uno
         panelBotones.add(btnCrear);
-        panelBotones.add(new JSeparator(SwingConstants.VERTICAL)); // Ponemos una barrita vertical para separar visualmente.
+        panelBotones.add(new JSeparator(SwingConstants.VERTICAL)); // Añade una línea vertical de adorno para separar
         panelBotones.add(btnAtributo);
         panelBotones.add(btnMetodo);
         panelBotones.add(btnRelacion);
-        panelBotones.add(new JSeparator(SwingConstants.VERTICAL)); // Otra barrita separadora.
+        panelBotones.add(new JSeparator(SwingConstants.VERTICAL)); // Otra línea separadora
         panelBotones.add(btnFoto);
         panelBotones.add(btnCodigo);
         
-        add(panelBotones, BorderLayout.NORTH); // Colocamos la bandeja llena de botones en la parte SUPERIOR (Norte) de la ventana.
+        // Se agarra la bandeja llena de botones y se pega en la parte de ARRIBA (NORTH) de la ventana
+        add(panelBotones, BorderLayout.NORTH); 
 
-        // Cuando toquen "Nueva Clase":
+
+        // cuando presiona el boton "Nueva Clase"
         btnCrear.addActionListener(e -> {
-            //Muestra un cuadro pidiendo el nombre y lo guarda en la variable 'nombre'
+            // Muestra un cuadro pidiendo el nombre y lo guarda en la variable 'nombre'
             String nombre = JOptionPane.showInputDialog("¿Cómo se llamará la clase?");
             
-            //verificamos que el usuario no haya cancelado (!= null) y no haya dejado espacios en blanco (!isEmpty)
+            // Verifica que el usuario no haya cancelado (!= null) y no haya dejado espacios en blanco (!isEmpty)
             if (nombre != null && !nombre.trim().isEmpty()) {
                 
-                // Contamos cuántas cajas hay actualmente en la pizarra
+                // 1. Cuenta cuántas cajitas hay en la pizarra actualmente
                 int cantidad = canvas.clasesUML.size(); 
                 
-                // Calculamos dónde poner la nueva caja. sumamos 30 píxeles por cada caja existente para que no se amontonen.
+                // 2. Calcula las nuevas coordenadas (suma 30 píxeles por cada cajita que ya exista para hacer el efecto cascada)
                 int nuevaX = 50 + (cantidad * 30);
                 int nuevaY = 50 + (cantidad * 30);
                 
-                // Construimos la nueva caja con su nombre y coordenadas, y la agregamos a la colección.
+                // 3. Fabrica una nueva clase con su nombre y coordenadas, y la añade a la lista de la pizarra
                 canvas.clasesUML.add(new UML_Clase(nombre, nuevaX, nuevaY));
                 
-                // Pedimos a la pizarra que borre y vuelva a dibujar todo para que aparezca la nueva caja.
+                // 4. Le da la orden a la pizarra de que vuelva a dibujarse para mostrar la nueva caja
                 canvas.repaint(); 
             }
         });
 
-        // Cuando toquen "+ Atributo":
+        // Qué pasa al hacer clic en "+ Atributo"
         btnAtributo.addActionListener(e -> {
-            // Usamos nuestra herramienta auxiliar para pedirle al usuario que elija una de las clases existentes.
+            // Llama al método elegirClase (abajo) para que el usuario elija a qué clase agregarle el atributo
             UML_Clase sel = elegirClase("¿A qué clase le agregas el atributo?");
-            if (sel != null) { // Si realmente eligió una clase
-                // Le pedimos que escriba el texto del atributoop
+            if (sel != null) { // Si eligió una clase
+                // Pide el texto del atributo
                 String attr = JOptionPane.showInputDialog("Escribe el atributo (Ej: - int edad):");
                 if (attr != null) { 
-                    sel.atributos.add(attr); // Lo anotamos en la lista de atributos de esa clase
-                    canvas.repaint(); // Refrescamos el dibujo
+                    sel.atributos.add(attr); // Lo añade a la lista de atributos de esa clase
+                    canvas.repaint(); // Actualiza el dibujo
                 }
             }
         });
 
-        // Cuando toquen "+ Método": (Misma lógica didáctica que el atributo)
+        // "+ Método" hace exactamente lo mismo que el botón de atributo)
         btnMetodo.addActionListener(e -> {
             UML_Clase sel = elegirClase("¿A qué clase le agregas el método?");
             if (sel != null) {
@@ -94,73 +95,70 @@ public class Diseñador_UML extends JFrame {
             }
         });
 
-        // Cuando toquen "Crear Relación":
+        //"Crear Relación"
         btnRelacion.addActionListener(e -> {
-            // Preguntamos quién es el inicio de la flecha. Si cancela, cortamos la ejecución (return).
-            UML_Clase origen = elegirClase("Elige al HIJO (el que hereda / apunta):");
-            if (origen == null) return;
-            
-            // Preguntamos quién es el final de la flecha. Si cancela o elige la misma caja, cortamos la ejecución.
-            UML_Clase destino = elegirClase("Elige a la MADRE (de quien hereda / recibe):");
-            if (destino == null || origen == destino) return;
-
-            // Creamos una variable de control asumiendo inicialmente que no existe la línea.
-            boolean relacionYaExiste = false;
-            
-            // Pasamos lista por todas las líneas dibujadas para ver si ya hay una conexión entre estas dos clases.
-            for (UML_relacion rel : canvas.relaciones) {
-                // Comparamos los extremos sin importar el orden (A conectado con B, o B conectado con A).
-                if ((rel.origen == origen && rel.destino == destino) || 
-                    (rel.origen == destino && rel.destino == origen)) {
-                    relacionYaExiste = true; // Si encontramos coincidencia, activamos la alarma.
-                    break; // Dejamos de buscar, ya tenemos la respuesta.
-                }
+            // Verifica que existan al menos 2 clases en la pizarra. si no hay lanza un aviso.
+            if (canvas.clasesUML.size() < 2) {
+                JOptionPane.showMessageDialog(this, "Necesitas al menos 2 clases creadas en la pizarra para hacer una relación.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return; // Corta la ejecución aquí mismo. no hace nada más.
             }
 
-            // Si la alarma de seguridad está activa, mostramos una advertencia y detenemos el proceso.
-            if (relacionYaExiste) {
-                JOptionPane.showMessageDialog(this, "Ya existe una línea o flecha conectando estas dos clases.", "Aviso", JOptionPane.WARNING_MESSAGE);
-                return;
+            if (canvas.clasesUML.size() == 2 && !canvas.relaciones.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Estas clases ya tienen relación.\nSi quieres crear otra relación, debes crear otra clase.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return; 
             }
 
-            // Damos a elegir el estilo visual de la línea mediante un menú de opciones.
+            // Muestra un menú de opciones con dos botones: Línea Normal y Herencia
             String[] opciones = {"Línea Normal", "Es una Herencia (Madre-Hijo)"};
             int resp = JOptionPane.showOptionDialog(this, "¿Qué tipo de relación es?", "Relación", 
-                    0, 3, null, opciones, opciones[0]); // 'resp' guardará 0 (Normal) o 1 (Herencia).
+                    0, 3, null, opciones, opciones[0]); // 'resp' guarda 0 (Normal) o 1 (Herencia)
 
-            // Traducimos la respuesta numérica al tipo de línea que entiende nuestro código.
-            UML_relacion.Tipo tipo = (resp == 1) ? UML_relacion.Tipo.HERENCIA : UML_relacion.Tipo.SIMPLE;
-            
-            // Trazamos la línea conectando los dos puntos elegidos.
-            canvas.relaciones.add(new UML_relacion(origen, destino, tipo));
-            canvas.repaint(); // Actualizamos la vista.
+            // Si el usuario eligió alguna opción (no canceló)
+            if (resp == 0 || resp == 1) {
+                // Guarda en la pizarra qué tipo de línea se va a dibujar
+                canvas.tipoRelacionPendiente = (resp == 1) ? UML_relacion.Tipo.HERENCIA : UML_relacion.Tipo.SIMPLE;
+                // Le avisa a la pizarra que el ratón ahora funciona para dibujar líneas (activa el modo dibujo)
+                canvas.modoRelacion = true; 
+                
+                // Prepara el mensaje de texto con las instrucciones básicas
+                String instrucciones = "Modo Relación Activado:\nHaz clic sobre la primera clase, mantén presionado y arrastra hacia la otra clase.";
+                
+                // Si eligió Herencia, le suma un texto extra explicando hacia dónde arrastrar
+                if (resp == 1) {
+                    instrucciones += "\n\n NOTA UML: En la herencia, la flecha debe apuntar a la clase superior.\nPor favor, arrastra desde la clase HIJA y suelta sobre la clase MADRE.";
+                }
+                
+                // Muestra el mensaje en la pantalla
+                JOptionPane.showMessageDialog(this, instrucciones, "Instrucciones", JOptionPane.INFORMATION_MESSAGE);
+            }
         });
 
-        // Cuando toquen la foto: Le pasamos la tarea al archivo externo de Herramientas.
+        // delega el trabajo al archivo Herramientas_UML
         btnFoto.addActionListener(e -> Herramientas_UML.guardarImagen(canvas, this));
         
-        // Cuando pidan código: Le mandamos nuestras listas de datos a Herramientas para que las procese y muestre en consola.
+        // ¿Qué pasa al hacer clic en "Generar Código"? Delega el trabajo a Herramientas_UML enviándole las listas de datos
         btnCodigo.addActionListener(e -> Herramientas_UML.generarCodigoJava(canvas.clasesUML, canvas.relaciones, this));
     }
 
+    //metodos auxiliares
+    
     //pregunta a que caja o clase le vamos agregar atributos
     public UML_Clase elegirClase(String mensaje) {
-        if (canvas.clasesUML.isEmpty()) return null;//verifica si hay clases, si no hay devuelve nada "null"
+        if (canvas.clasesUML.isEmpty()) return null; //verifica si hay clases, si no hay devuelve nada "null"
         
-  // Extrae solo los nombres de todas las clases y los mete en una lista de textos (arreglo)
+        // Extrae solo los nombres de todas las clases y los mete en una lista de textos (arreglo)
         String[] nombres = canvas.clasesUML.stream().map(c -> c.nombre).toArray(String[]::new);
         
-       // Muestra el menú desplegable con los nombres y guarda lo que el usuario eligió en 'sel'
+        // Muestra el menú desplegable con los nombres y guarda lo que el usuario eligió en 'sel'
         String sel = (String) JOptionPane.showInputDialog(this, mensaje, "Elige", 3, null, nombres, nombres[0]);
         
         // Busca en la memoria la clase real que coincida con ese nombre y la devuelve
         for (UML_Clase c : canvas.clasesUML) if (c.nombre.equals(sel)) return c;
-        
         return null; // Por si el usuario cierra la ventana sin elegir nada.
     }
 
     public static void main(String[] args) {
-        // Esta es la chispa inicial. Le pedimos a Java que ensamble y encienda la interfaz de manera segura.
+        // Le dice a Java que construya la ventana principal de forma segura y la haga visible en la pantalla
         SwingUtilities.invokeLater(() -> new Diseñador_UML().setVisible(true));
     }
 }
