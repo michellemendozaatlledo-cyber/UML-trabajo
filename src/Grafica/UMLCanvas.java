@@ -1,22 +1,32 @@
-
 package Grafica;
-import Logica_de_salida.*;
+
+import Logica_de_salida.UML_Clase;
+import Logica_de_salida.UML_relacion;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.*;
 
 public class UMLCanvas extends JPanel {
-    List<UML_Clase> clasesUML = new ArrayList<>(); //guarda las cajitas
-    List<UML_relacion> relaciones = new ArrayList<>(); //guarda las flechas
+    public List<UML_Clase> clasesUML = new ArrayList<>(); // guarda las cajitas
+    public List<UML_relacion> relaciones = new ArrayList<>(); // guarda las flechas
     
     private UML_Clase claseSeleccionadaArrastre = null; 
     private UML_Clase claseSeleccionadaMenu = null; // Para saber a quién le hicimos clic derecho
+    private UML_relacion relacionSeleccionadaMenu = null; // Para saber a qué línea le hicimos clic derecho
     private Point offsetRaton; 
     
     // El menú de clic derecho
     private JPopupMenu menuContextual;
+    private JPopupMenu menuContextualRelacion; // Menú emergente para eliminar líneas
+
+    // Variables para el modo de trazado de relaciones
+    public boolean modoRelacion = false;
+    public UML_relacion.Tipo tipoRelacionPendiente = null;
+    private UML_Clase claseInicioRelacion = null;
+    private Point puntoFinRelacionTemp = null;
 
     public UMLCanvas() {
         setBackground(Color.WHITE);
@@ -25,41 +35,102 @@ public class UMLCanvas extends JPanel {
         MouseAdapter ratonAdapter = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                UML_Clase claseClickeada = obtenerClaseEnPosicion(e.getPoint()); //verifica el click en la caja
+                UML_Clase claseClickeada = obtenerClaseEnPosicion(e.getPoint()); // verifica el click en la caja
+
+                // Si estamos trazando una relación con clic izquierdo
+                if (modoRelacion && SwingUtilities.isLeftMouseButton(e)) {
+                    if (claseClickeada != null) {
+                        claseInicioRelacion = claseClickeada;
+                        puntoFinRelacionTemp = e.getPoint();
+                    }
+                    return; 
+                }
 
                 // Si es CLIC DERECHO
                 if (SwingUtilities.isRightMouseButton(e)) {
                     if (claseClickeada != null) {
-                        claseSeleccionadaMenu = claseClickeada; //guarda la clase del click y ... 
-                        menuContextual.show(e.getComponent(), e.getX(), e.getY()); //... abre el contextual
+                        claseSeleccionadaMenu = claseClickeada; // guarda la clase del click y ... 
+                        menuContextual.show(e.getComponent(), e.getX(), e.getY()); // ... abre el contextual
+                    } else {
+                        // Si no hizo clic en una caja, verifica si hizo clic sobre una línea/flecha
+                        UML_relacion relClickeada = obtenerRelacionEnPosicion(e.getPoint());
+                        if (relClickeada != null) {
+                            relacionSeleccionadaMenu = relClickeada;
+                            menuContextualRelacion.show(e.getComponent(), e.getX(), e.getY());
+                        }
                     }
                 } 
                 // Si es CLIC IZQUIERDO (Para arrastrar)
                 else if (SwingUtilities.isLeftMouseButton(e)) {
                     if (claseClickeada != null) {
-                        claseSeleccionadaArrastre = claseClickeada; //guarda la clase a mover
-                        offsetRaton = new Point(e.getX() - claseClickeada.bounds.x, e.getY() - claseClickeada.bounds.y); //distancia entre el raton y la caja a arrastrar
+                        claseSeleccionadaArrastre = claseClickeada; // guarda la clase a mover
+                        offsetRaton = new Point(e.getX() - claseClickeada.bounds.x, e.getY() - claseClickeada.bounds.y); // distancia entre el raton y la caja a arrastrar
                     }
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                claseSeleccionadaArrastre = null;  //indica q ya no estamos seleccionando la caja
+                // Al soltar el clic si estábamos creando una relación
+                if (modoRelacion && claseInicioRelacion != null) {
+                    UML_Clase claseDestino = obtenerClaseEnPosicion(e.getPoint());
+                    
+                    if (claseDestino != null && claseDestino != claseInicioRelacion) {
+                        
+                        // Validar si la relación ya existe
+                        boolean relacionYaExiste = false;
+                        for (UML_relacion rel : relaciones) {
+                            if ((rel.origen == claseInicioRelacion && rel.destino == claseDestino) || 
+                                (rel.origen == claseDestino && rel.destino == claseInicioRelacion)) {
+                                relacionYaExiste = true;
+                                break;
+                            }
+                        }
+
+                        if (relacionYaExiste) {
+                            JOptionPane.showMessageDialog(UMLCanvas.this, "Ya existe una línea o flecha conectando estas dos clases.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                        } else {
+                            relaciones.add(new UML_relacion(claseInicioRelacion, claseDestino, tipoRelacionPendiente));
+                            
+                            if (tipoRelacionPendiente == UML_relacion.Tipo.HERENCIA) {
+                                JOptionPane.showMessageDialog(UMLCanvas.this, 
+                                    "¡La clase '" + claseDestino.nombre + "' ahora es una MADRE!\nSu caja cambiará a un color único para diferenciarla de las demás.", 
+                                    "Herencia Creada", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        }
+                    }
+                    
+                    // Resetear el modo de relación
+                    modoRelacion = false;
+                    claseInicioRelacion = null;
+                    puntoFinRelacionTemp = null;
+                    repaint();
+                    return;
+                }
+
+                claseSeleccionadaArrastre = null; // indica q ya no estamos seleccionando la caja
             }
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (claseSeleccionadaArrastre != null && SwingUtilities.isLeftMouseButton(e)) { //verifica q se "arrastre" una caja && q sea con el click derecho
-                    claseSeleccionadaArrastre.bounds.x = e.getX() - offsetRaton.x; //obtiene las cordenadas de la caja
+                // Dibuja la línea elástica mientras arrastramos en modo relación
+                if (modoRelacion && claseInicioRelacion != null) {
+                    puntoFinRelacionTemp = e.getPoint();
+                    repaint();
+                    return;
+                }
+
+                // verifica q se "arrastre" una caja && q sea con el click izquierdo
+                if (claseSeleccionadaArrastre != null && SwingUtilities.isLeftMouseButton(e)) {
+                    claseSeleccionadaArrastre.bounds.x = e.getX() - offsetRaton.x; // obtiene las cordenadas de la caja
                     claseSeleccionadaArrastre.bounds.y = e.getY() - offsetRaton.y;
-                    repaint(); //vuelve a dibujar en el "lienzo" la caja
+                    repaint(); // vuelve a dibujar en el "lienzo" la caja
                 }
             }
         };
 
-        addMouseListener(ratonAdapter); //escucha click
-        addMouseMotionListener(ratonAdapter); //escucha movimiento
+        addMouseListener(ratonAdapter); // escucha click
+        addMouseMotionListener(ratonAdapter); // escucha movimiento
     }
 
     private void crearMenuContextual() {
@@ -68,12 +139,12 @@ public class UMLCanvas extends JPanel {
         JMenuItem itemEditar = new JMenuItem("Editar Nombre");
         JMenuItem itemEliminar = new JMenuItem("Eliminar Clase");
 
-        itemEditar.addActionListener(e -> { //cuando haga click se ejecuta todo lo de adentro
+        itemEditar.addActionListener(e -> { // cuando haga click se ejecuta todo lo de adentro
             if (claseSeleccionadaMenu != null) {
                 String nuevoNombre = JOptionPane.showInputDialog(this, "Nuevo nombre:", claseSeleccionadaMenu.nombre);
-                if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) { //verifica: q no se cierre, q no tenga espacios y q no este vacio
+                if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) { // verifica: q no se cierre, q no tenga espacios y q no este vacio
                     claseSeleccionadaMenu.nombre = nuevoNombre.trim();
-                    repaint(); //vuelve a dibujar la caja
+                    repaint(); // vuelve a dibujar la caja
                 }
             }
         });
@@ -81,7 +152,7 @@ public class UMLCanvas extends JPanel {
         itemEliminar.addActionListener(e -> {
             if (claseSeleccionadaMenu != null) {
                 int resp = JOptionPane.showConfirmDialog(this, "¿Seguro que deseas eliminar '" + claseSeleccionadaMenu.nombre + "'?", "Confirmar", JOptionPane.YES_NO_OPTION);
-                if (resp == JOptionPane.YES_OPTION) { //si se confirma eliminacion
+                if (resp == JOptionPane.YES_OPTION) { // si se confirma eliminacion
                     clasesUML.remove(claseSeleccionadaMenu);
                     // Borrar relaciones conectadas a esta clase
                     relaciones.removeIf(rel -> rel.origen == claseSeleccionadaMenu || rel.destino == claseSeleccionadaMenu);
@@ -93,13 +164,40 @@ public class UMLCanvas extends JPanel {
         menuContextual.add(itemEditar);
         menuContextual.addSeparator(); // Una rayita separadora
         menuContextual.add(itemEliminar);
+
+        // Menú emergente para relaciones
+        menuContextualRelacion = new JPopupMenu();
+        JMenuItem itemEliminarRel = new JMenuItem("Eliminar Relación");
+        itemEliminarRel.addActionListener(e -> {
+            if (relacionSeleccionadaMenu != null) {
+                relaciones.remove(relacionSeleccionadaMenu);
+                repaint();
+            }
+        });
+        menuContextualRelacion.add(itemEliminarRel);
     }
 
-    private UML_Clase obtenerClaseEnPosicion(Point p) { //contiene las cordenadas donde se hizo click
+    private UML_Clase obtenerClaseEnPosicion(Point p) { // contiene las cordenadas donde se hizo click
         // Recorremos de atrás para adelante por si hay cajas encimadas ya q la ultima q se crea es la del frente
         for (int i = clasesUML.size() - 1; i >= 0; i--) { 
-            if (clasesUML.get(i).bounds.contains(p)) { //verifica q se seleccione la caja (cordenadas)
+            if (clasesUML.get(i).bounds.contains(p)) { // verifica q se seleccione la caja (cordenadas)
                 return clasesUML.get(i);
+            }
+        }
+        return null;
+    }
+
+    // Calcula si el clic cayó cerca de una línea de relación (distancia menor a 5 píxeles)
+    private UML_relacion obtenerRelacionEnPosicion(Point p) {
+        for (UML_relacion rel : relaciones) {
+            int cx1 = rel.origen.bounds.x + (rel.origen.bounds.width / 2);
+            int cy1 = rel.origen.bounds.y + (rel.origen.bounds.height / 2);
+            int cx2 = rel.destino.bounds.x + (rel.destino.bounds.width / 2);
+            int cy2 = rel.destino.bounds.y + (rel.destino.bounds.height / 2);
+            
+            double distancia = java.awt.geom.Line2D.ptSegDist(cx1, cy1, cx2, cy2, p.x, p.y);
+            if (distancia <= 5.0) { 
+                return rel;
             }
         }
         return null;
@@ -107,60 +205,99 @@ public class UMLCanvas extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); //borra lo q se dibujo en el lienzo anterior
-        Graphics2D g2d = (Graphics2D) g;  //permite tener herramientas de edicion
-        g2d.setStroke(new BasicStroke(2)); //es el grosor de las lineas (2 pixeles)
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); //renderizado de graficos,suavizado
+        super.paintComponent(g); // borra lo q se dibujo en el lienzo anterior
+        Graphics2D g2d = (Graphics2D) g; // permite tener herramientas de edicion
+        g2d.setStroke(new BasicStroke(2)); // es el grosor de las lineas (2 pixeles)
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); // renderizado de graficos,suavizado
+
+        // Vista previa de la línea mientras se está trazando
+        if (modoRelacion && claseInicioRelacion != null && puntoFinRelacionTemp != null) {
+            int cx1 = claseInicioRelacion.bounds.x + (claseInicioRelacion.bounds.width / 2);
+            int cy1 = claseInicioRelacion.bounds.y + (claseInicioRelacion.bounds.height / 2);
+            
+            if (tipoRelacionPendiente == UML_relacion.Tipo.HERENCIA) {
+                g2d.setColor(Color.BLUE);
+            } else {
+                g2d.setColor(Color.GRAY);
+            }
+            g2d.drawLine(cx1, cy1, puntoFinRelacionTemp.x, puntoFinRelacionTemp.y);
+        }
+
+        // Creamos una lista de las madres únicas que existen en la pizarra
+        List<UML_Clase> listaMadres = new ArrayList<>();
+        for (UML_relacion rel : relaciones) {
+            if (rel.tipo == UML_relacion.Tipo.HERENCIA && !listaMadres.contains(rel.destino)) {
+                listaMadres.add(rel.destino);
+            }
+        }
+
+        // Paleta de colores para las madres (Celeste, Rosa, Verde, Lila, Naranja)
+        Color[] paletaMadres = {
+            new Color(220, 240, 255), 
+            new Color(255, 220, 220), 
+            new Color(220, 255, 220), 
+            new Color(240, 220, 255), 
+            new Color(255, 235, 205)  
+        };
 
         // 1. Dibujar Relaciones (Cuerdas y Flechas)
-        for (UML_relacion rel : relaciones) { //bucle de lista: recorre la lista de "relaciones", toma una por una la llama "rel" y le aplica el codigo
-            int cx1 = (rel.origen.bounds.x) + (rel.origen.bounds.width / 2); //(geometria de una caja: cordenada x,y,ancho,alto) + (busca el centro de la caja (mitad))
+        for (UML_relacion rel : relaciones) { // bucle de lista: recorre la lista de "relaciones", toma una por una la llama "rel" y le aplica el codigo
+            int cx1 = (rel.origen.bounds.x) + (rel.origen.bounds.width / 2); // (geometria de una caja: cordenada x,y,ancho,alto) + (busca el centro de la caja (mitad))
             int cy1 = rel.origen.bounds.y + (rel.origen.bounds.height / 2);
             int cx2 = rel.destino.bounds.x + (rel.destino.bounds.width / 2);
             int cy2 = rel.destino.bounds.y + (rel.destino.bounds.height / 2);
 
-            if (rel.tipo == UML_relacion.Tipo.HERENCIA) { //pregunta si la linea presenta una herencia y....
-                g2d.setColor(Color.BLUE); //....si es asi, la coloca en color azul
+            if (rel.tipo == UML_relacion.Tipo.HERENCIA) { // pregunta si la linea presenta una herencia y....
+                g2d.setColor(Color.BLUE); // ....si es asi, la coloca en color azul
                 
                 // Calcular el punto exacto donde la línea toca el borde de la caja destino
-                Point bordeDestino = obtenerInterseccionBorde(cx1, cy1, cx2, cy2, rel.destino.bounds); //se hace el calculo para q se vea el triangulo
-                double angulo = Math.atan2(bordeDestino.y - cy1, bordeDestino.x - cx1); //a donde apunta la flecha
+                Point bordeDestino = obtenerInterseccionBorde(cx1, cy1, cx2, cy2, rel.destino.bounds); // se hace el calculo para q se vea el triangulo
+                double angulo = Math.atan2(bordeDestino.y - cy1, bordeDestino.x - cx1); // a donde apunta la flecha
                 
-                g2d.drawLine(cx1, cy1, bordeDestino.x, bordeDestino.y); //traza la linea azul desde la caja 1 y termina en el borde de la caja 2
-                dibujarTriangulo(g2d, bordeDestino.x, bordeDestino.y, angulo); //se dibuja el triangulo de la flecha
-            } else { //si no es herencia (solo asociacion normal)
-                g2d.setColor(Color.GRAY); //sera una simple linea gris
-                g2d.drawLine(cx1, cy1, cx2, cy2); //dibuja una linea recta entre las 2 cajas
+                g2d.drawLine(cx1, cy1, bordeDestino.x, bordeDestino.y); // traza la linea azul desde la caja 1 y termina en el borde de la caja 2
+                dibujarTriangulo(g2d, bordeDestino.x, bordeDestino.y, angulo); // se dibuja el triangulo de la flecha
+            } else { // si no es herencia (solo asociacion normal)
+                g2d.setColor(Color.GRAY); // sera una simple linea gris
+                g2d.drawLine(cx1, cy1, cx2, cy2); // dibuja una linea recta entre las 2 cajas
             }
         }
 
         // 2. Dibujar Clases (Cajas)
         for (UML_Clase uml : clasesUML) {
-            int altoTitulo = 30; //1
-            int altoAtributos = Math.max(30, uml.atributos.size() * 15 + 10); //1
-            int altoMetodos = Math.max(30, uml.metodos.size() * 15 + 10); //1
-            uml.bounds.height = altoTitulo + altoAtributos + altoMetodos; //1: tamaño de la caja,adecua el tamaño segun los elementos q tenga
+            int altoTitulo = 30; // 1
+            int altoAtributos = Math.max(30, uml.atributos.size() * 15 + 10); // 1
+            int altoMetodos = Math.max(30, uml.metodos.size() * 15 + 10); // 1
+            uml.bounds.height = altoTitulo + altoAtributos + altoMetodos; // 1: tamaño de la caja,adecua el tamaño segun los elementos q tenga
 
-            g2d.setColor(new Color(255, 255, 220)); //color de la caja (amarillo claro)
-            g2d.fill(uml.bounds); //rellena la caja con el color
-            g2d.setColor(Color.BLACK); //color negro para...
-            g2d.draw(uml.bounds); //...el contorno de la caja
+            Color colorFondo = new Color(255, 255, 220); // color de la caja (amarillo claro por defecto)
+            
+            // Verificamos si esta clase está en nuestra lista de madres
+            int indexMadre = listaMadres.indexOf(uml);
+            if (indexMadre != -1) {
+                // Si es madre, le asignamos un color único de nuestra paleta
+                colorFondo = paletaMadres[indexMadre % paletaMadres.length];
+            }
 
-            g2d.setFont(new Font("Arial", Font.BOLD, 12)); //2 titulo: letra arial, en negrita 12
-            g2d.drawString(uml.nombre, uml.bounds.x + 10, uml.bounds.y + 20); //2
-            g2d.drawLine(uml.bounds.x, uml.bounds.y + altoTitulo, uml.bounds.x + uml.bounds.width, uml.bounds.y + altoTitulo); //2
+            g2d.setColor(colorFondo); 
+            g2d.fill(uml.bounds); // rellena la caja con el color
+            g2d.setColor(Color.BLACK); // color negro para...
+            g2d.draw(uml.bounds); // ...el contorno de la caja
 
-            g2d.setFont(new Font("Arial", Font.PLAIN, 12)); //3 atributos: cambia el estilo de letra sin negrita
-            int yActual = uml.bounds.y + altoTitulo + 15; //3 
-            for (String attr : uml.atributos) { //recorre la lista de atributos y baja un reglon
+            g2d.setFont(new Font("Arial", Font.BOLD, 12)); // 2 titulo: letra arial, en negrita 12
+            g2d.drawString(uml.nombre, uml.bounds.x + 10, uml.bounds.y + 20); // 2
+            g2d.drawLine(uml.bounds.x, uml.bounds.y + altoTitulo, uml.bounds.x + uml.bounds.width, uml.bounds.y + altoTitulo); // 2
+
+            g2d.setFont(new Font("Arial", Font.PLAIN, 12)); // 3 atributos: cambia el estilo de letra sin negrita
+            int yActual = uml.bounds.y + altoTitulo + 15; // 3 
+            for (String attr : uml.atributos) { // recorre la lista de atributos y baja un reglon
                 g2d.drawString(attr, uml.bounds.x + 10, yActual);
                 yActual += 15;
             }
-            int lineaSeparadoraY = uml.bounds.y + altoTitulo + altoAtributos; //coloca una linea para separar y...
-            g2d.drawLine(uml.bounds.x, lineaSeparadoraY, uml.bounds.x + uml.bounds.width, lineaSeparadoraY); //...la dibuja
+            int lineaSeparadoraY = uml.bounds.y + altoTitulo + altoAtributos; // coloca una linea para separar y...
+            g2d.drawLine(uml.bounds.x, lineaSeparadoraY, uml.bounds.x + uml.bounds.width, lineaSeparadoraY); // ...la dibuja
 
             yActual = lineaSeparadoraY + 15;
-            for (String met : uml.metodos) { //hace lo mismo con los atributos
+            for (String met : uml.metodos) { // hace lo mismo con los métodos
                 g2d.drawString(met, uml.bounds.x + 10, yActual);
                 yActual += 15;
             }
