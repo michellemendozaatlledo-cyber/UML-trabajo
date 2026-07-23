@@ -1,4 +1,5 @@
 package interfaz; // Indica que este archivo vive dentro de la carpeta "interfaz"
+
 // Las siguientes líneas importan las herramientas necesarias de las carpetas de mis compañeros
 // buscamos los codigos de antone y coldova
 import Grafica.UMLCanvas; // Trae la pizarra donde se dibuja(Antone)
@@ -133,11 +134,65 @@ public class Diseñador_UML extends JFrame {
             }
         });
 
-        // delega el trabajo al archivo Herramientas_UML
-        btnFoto.addActionListener(e -> Herramientas_UML.guardarImagen(canvas, this));
+        //Implementación de hilos en el botón de guardar foto
+        // delega el trabajo al archivo Herramientas_UML usando un hilo secundario
+        btnFoto.addActionListener(e -> {
+            // 1. Se deshabilita el botón y se cambia el texto para dar retroalimentación
+            btnFoto.setEnabled(false);
+            btnFoto.setText("Procesando...");
+            
+            // 2. Se crea un objeto Thread pasándole la tarea
+            Thread hiloFoto = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    // Aquí ocurre la tarea en el Hilo Secundario
+                    Herramientas_UML.guardarImagen(canvas, Diseñador_UML.this);
+                    
+                    // 3. Se envía la actualización visual de vuelta al hilo de la interfaz
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Se restaura el texto y se vuelve a habilitar el botón
+                            btnFoto.setText("Tomar Foto (Guardar)");
+                            btnFoto.setEnabled(true);
+                        }
+                    });
+                }
+            });
+            
+            // 4. start() inicia el hilo secundario
+            hiloFoto.start();
+        });
         
-        // ¿Qué pasa al hacer clic en "Generar Código"? Delega el trabajo a Herramientas_UML enviándole las listas de datos
-        btnCodigo.addActionListener(e -> Herramientas_UML.generarCodigoJava(canvas.clasesUML, canvas.relaciones, this));
+        //Implementación sencilla de Hilos
+        // ¿Qué pasa al hacer clic en "Generar Código"? Evitamos bloquear la ventana usando un Thread.
+        btnCodigo.addActionListener(e -> {
+            
+            // 1. Se deshabilita el botón para que el usuario no inicie varios hilos simultáneos
+            btnCodigo.setEnabled(false); 
+            
+            // 2. Se crea un objeto Thread pasándole la tarea (Runnable)
+            Thread hilo = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    
+                    // Aquí ocurre la tarea lenta en el Hilo Secundario
+                    Herramientas_UML.generarCodigoJava(canvas.clasesUML, canvas.relaciones, Diseñador_UML.this);
+                    
+                    // 3. Se envía la actualización visual de vuelta al hilo de la interfaz
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Se vuelve a habilitar el botón
+                            btnCodigo.setEnabled(true);
+                        }
+                    });
+                }
+            });
+            
+            // 4. start() inicia el hilo secundario y deja que la ventana (main) siga funcionando
+            hilo.start(); 
+        });
     }
 
     //metodos auxiliares
