@@ -220,7 +220,7 @@ public class UMLCanvas extends JPanel {
             
             // Fórmula matemática para calcular qué tan lejos está el clic de la línea.
             double distancia = java.awt.geom.Line2D.ptSegDist(cx1, cy1, cx2, cy2, p.x, p.y);
-            // Si hizo clic a 5 píxeles o menos de la línea, supone que quierias darle click a la linea
+            // Si hizo clic a 5 píxeles o menos de la línea, supone que querias darle click a la linea
             if (distancia <= 5.0) { 
                 return rel;
             }
@@ -307,26 +307,23 @@ public class UMLCanvas extends JPanel {
             // Verificamos si esta clase está en nuestra lista de madres
             int indexMadre = listaMadres.indexOf(uml);
             if (indexMadre != -1) {
-                // Si es madre, le asignamos un color único de nuestra paleta basado en su posición
+                // Si es madre, le asignamos un color de nuestra paleta basado en su posición
                 colorFondo = paletaMadres[indexMadre % paletaMadres.length];
             }
 
-            // Dibujamos el rectángulo con el color correspondiente (amarillo o el color de madre)
-            g2d.setColor(colorFondo); 
-            g2d.fill(uml.bounds);
-            // Le pintamos el borde de negro.
-            g2d.setColor(Color.BLACK);
-            g2d.draw(uml.bounds); 
+            g2d.setColor(colorFondo); //selecciona el amarillo o color de la paleta
+            g2d.fill(uml.bounds); //lo pinta
+            
+            g2d.setColor(Color.BLACK);//cambia el pincel a negro...
+            g2d.draw(uml.bounds); //...y pinta el contorno de negro
 
-            // Escribimos el nombre de la clase (En Negrita).
-            g2d.setFont(new Font("Arial", Font.BOLD, 12));
+            g2d.setFont(new Font("Arial", Font.BOLD, 12)); // Escribimos el nombre de la clase (En Negrita y arial).
             g2d.drawString(uml.nombre, uml.bounds.x + 10, uml.bounds.y + 20);
             // Dibujamos la raya que separa el nombre de los atributos.
             g2d.drawLine(uml.bounds.x, uml.bounds.y + altoTitulo, uml.bounds.x + uml.bounds.width, uml.bounds.y + altoTitulo);
 
-            // Cambiamos a letra normal para escribir los atributos.
-            g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-            int yActual = uml.bounds.y + altoTitulo + 15; // Coordenada de altura inicial para escribir.
+            g2d.setFont(new Font("Arial", Font.PLAIN, 12)); // Cambiamos a letra normal para escribir los atributos.
+            int yActual = uml.bounds.y + altoTitulo + 15; 
             for (String attr : uml.atributos) { // Por cada atributo
                 g2d.drawString(attr, uml.bounds.x + 10, yActual); // Lo dibuja en la pantalla.
                 yActual += 15; // Baja al siguiente renglón.
@@ -337,9 +334,9 @@ public class UMLCanvas extends JPanel {
 
             // Hacemos lo mismo con los métodos, escribiéndolos renglón por renglón.
             yActual = lineaSeparadoraY + 15;
-            for (String met : uml.metodos) {
-                g2d.drawString(met, uml.bounds.x + 10, yActual);
-                yActual += 15;
+            for (String met : uml.metodos) { //por cada metodo 
+                g2d.drawString(met, uml.bounds.x + 10, yActual); //lo dibuja en la pantalla
+                yActual += 15; //baja al siguiente reglon
             }
         }
     }
